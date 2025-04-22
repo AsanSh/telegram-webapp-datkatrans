@@ -111,18 +111,24 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    z-index: 9999;
     overflow-y: auto;
+    padding: 20px;
+}
+
+.modal.show {
+    display: block;
 }
 
 .modal-content {
     position: relative;
     background-color: white;
-    margin: 20px auto;
-    padding: var(--spacing-unit);
+    margin: 0 auto;
+    padding: 20px;
     border-radius: var(--border-radius);
     max-width: 600px;
-    width: 90%;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .modal-header {

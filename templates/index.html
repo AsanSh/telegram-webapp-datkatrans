@@ -147,20 +147,37 @@
         </nav>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+
     <script>
+        // Проверка, что функции определены
+        console.log('Checking functions:', {
+            showRequestForm: typeof showRequestForm,
+            closeRequestForm: typeof closeRequestForm,
+            handleRequestSubmit: typeof handleRequestSubmit
+        });
+
+        // Дополнительная инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const user = tg.initDataUnsafe.user || {};
-        document.getElementById('username').textContent = user.first_name || "Неизвестно";
+        // Проверка, что модальное окно существует
+        console.log('Modal element:', document.getElementById('requestFormModal'));
 
-        // Пример отправки данных
-        tg.onEvent('mainButtonClicked', function(){
-            tg.sendData("Clicked!");
+        // Добавляем обработчик для кнопки добавления напрямую здесь
+        document.querySelector('.add-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Add button clicked');
+            const modal = document.getElementById('requestFormModal');
+            if (modal) {
+                modal.style.display = 'block';
+                console.log('Modal should be visible now');
+            } else {
+                console.log('Modal element not found');
+            }
         });
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
 </body>
 </html> 

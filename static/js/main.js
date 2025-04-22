@@ -1,15 +1,23 @@
 // Modal functions
 function showRequestForm() {
+    console.log('showRequestForm called');
     const modal = document.getElementById('requestFormModal');
     if (modal) {
         modal.style.display = 'block';
+        modal.classList.add('show');
+        console.log('Modal shown');
+    } else {
+        console.error('Modal element not found');
     }
 }
 
 function closeRequestForm() {
+    console.log('closeRequestForm called');
     const modal = document.getElementById('requestFormModal');
     if (modal) {
         modal.style.display = 'none';
+        modal.classList.remove('show');
+        console.log('Modal hidden');
     }
 }
 
@@ -24,17 +32,17 @@ window.onclick = function(event) {
 // Handle form submission
 function handleRequestSubmit(event) {
     event.preventDefault();
+    console.log('Form submitted');
     
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData.entries());
     
-    // Here you can add your API call to submit the data
     console.log('Form data:', data);
     
     // Close the modal after submission
     closeRequestForm();
     
-    // Optional: Show success message
+    // Show success message
     alert('Заявка успешно создана!');
 }
 
@@ -56,13 +64,20 @@ document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.bu
 
 // Handle action buttons
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
+    
     // Add button handler
     const addButton = document.querySelector('.add-button');
     if (addButton) {
-        addButton.onclick = function(e) {
-            e.stopPropagation(); // Prevent event bubbling
+        console.log('Add button found');
+        addButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Add button clicked');
             showRequestForm();
-        };
+        });
+    } else {
+        console.error('Add button not found');
     }
 
     // Other action buttons
