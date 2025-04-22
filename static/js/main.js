@@ -55,19 +55,37 @@ document.documentElement.style.setProperty('--tg-theme-button-color', tg.button_
 document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.button_text_color || '#ffffff');
 
 // Handle action buttons
-const actionButtons = document.querySelectorAll('.action-button');
-actionButtons.forEach(button => {
-    button.addEventListener('click', function() {
-        const action = this.querySelector('.action-text').textContent;
-        tg.showPopup({
-            title: action,
-            message: `Выполнить действие "${action}"?`,
-            buttons: [
-                {text: "Отмена", type: "cancel"},
-                {text: "Да", type: "ok"}
-            ]
+document.addEventListener('DOMContentLoaded', function() {
+    // Add button handler
+    const addButton = document.querySelector('.add-button');
+    if (addButton) {
+        addButton.onclick = function(e) {
+            e.stopPropagation(); // Prevent event bubbling
+            showRequestForm();
+        };
+    }
+
+    // Other action buttons
+    const actionButtons = document.querySelectorAll('.action-button:not(.add-button)');
+    actionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const action = this.querySelector('.action-text').textContent;
+            tg.showPopup({
+                title: action,
+                message: `Выполнить действие "${action}"?`,
+                buttons: [
+                    {text: "Отмена", type: "cancel"},
+                    {text: "Да", type: "ok"}
+                ]
+            });
         });
     });
+
+    // Handle form submission
+    const requestForm = document.getElementById('requestForm');
+    if (requestForm) {
+        requestForm.onsubmit = handleRequestSubmit;
+    }
 });
 
 // Handle navigation
