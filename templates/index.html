@@ -10,48 +10,111 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header Tabs -->
-        <div class="header-tabs">
-            <div class="welcome-text active">Добро пожаловать, <span id="username">...</span></div>
+        <!-- Header -->
+        <div class="header">
+            <h1 class="welcome-text">Добро пожаловать, <span id="username">...</span></h1>
         </div>
 
-        <!-- Main Balance Section -->
-        <div class="balance-section">
-            <div class="balance-label">Количество заявок</div>
-            <div class="balance-amount">
-                <span id="requests-count">0</span>
-            </div>
+        <!-- Request Counter -->
+        <div class="counter-section">
+            <div class="counter-label">Количество заявок</div>
+            <div class="counter-amount" id="requests-count">2</div>
         </div>
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <div class="action-button">
-                <div class="action-icon">➕</div>
-                <div class="action-text">Добавить</div>
-            </div>
-            <div class="action-button">
-                <div class="action-icon">✏️</div>
-                <div class="action-text">Корректировать</div>
-            </div>
-            <div class="action-button">
-                <div class="action-icon">✖️</div>
-                <div class="action-text">Закрыть</div>
-            </div>
-            <div class="action-button">
-                <div class="action-icon">📊</div>
-                <div class="action-text">Аналитика</div>
+            <button class="action-button add-button" onclick="showRequestForm()">
+                <span class="action-icon">➕</span>
+                <span class="action-text">Добавить</span>
+            </button>
+            <button class="action-button edit-button">
+                <span class="action-icon">✏️</span>
+                <span class="action-text">Корректировать</span>
+            </button>
+            <button class="action-button close-button">
+                <span class="action-icon">✖️</span>
+                <span class="action-text">Закрыть</span>
+            </button>
+            <button class="action-button analytics-button">
+                <span class="action-icon">📊</span>
+                <span class="action-text">Аналитика</span>
+            </button>
+        </div>
+
+        <!-- Request Form Modal -->
+        <div id="requestFormModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Новая заявка</h2>
+                    <span class="close-modal" onclick="closeRequestForm()">&times;</span>
+                </div>
+                <form id="requestForm" onsubmit="handleRequestSubmit(event)">
+                    <div class="form-group">
+                        <label>Дата закрытия</label>
+                        <input type="date" name="closeDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Дата отгрузки</label>
+                        <input type="date" name="shipmentDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Логист</label>
+                        <input type="text" name="logistician" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Дата выгрузки</label>
+                        <input type="date" name="unloadingDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ФИО водителя</label>
+                        <input type="text" name="driverName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Номер телефона</label>
+                        <input type="tel" name="phoneNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Тип груза</label>
+                        <input type="text" name="cargoType" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Госномер авто</label>
+                        <input type="text" name="vehicleNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Направление</label>
+                        <input type="text" name="direction" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Фрахт нам</label>
+                        <input type="number" name="ourFreight" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Фрахт водителю</label>
+                        <input type="number" name="driverFreight" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Налог</label>
+                        <input type="number" name="tax" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Офис</label>
+                        <input type="text" name="office" required>
+                    </div>
+                    <button type="submit" class="submit-button">Создать заявку</button>
+                </form>
             </div>
         </div>
 
         <!-- Active Requests List -->
-        <div class="requests-list">
+        <div class="requests-list" id="requestsList">
             <div class="request-item">
                 <div class="request-icon">📝</div>
                 <div class="request-info">
                     <div class="request-title">Активная заявка #1</div>
                     <div class="request-details">Статус: В обработке</div>
                 </div>
-                <div class="request-amount">12:30</div>
+                <div class="request-time">12:30</div>
             </div>
             <div class="request-item">
                 <div class="request-icon">📝</div>
@@ -59,29 +122,29 @@
                     <div class="request-title">Активная заявка #2</div>
                     <div class="request-details">Статус: Новая</div>
                 </div>
-                <div class="request-amount">14:45</div>
+                <div class="request-time">14:45</div>
             </div>
         </div>
 
         <!-- Bottom Navigation -->
-        <div class="bottom-nav">
-            <div class="nav-item active">
-                <div class="nav-icon">📋</div>
-                <div class="nav-text">Заявки</div>
-            </div>
-            <div class="nav-item">
-                <div class="nav-icon">📤</div>
-                <div class="nav-text">Выгрузка</div>
-            </div>
-            <div class="nav-item">
-                <div class="nav-icon">🔒</div>
-                <div class="nav-text">Закрытие</div>
-            </div>
-            <div class="nav-item">
-                <div class="nav-icon">📅</div>
-                <div class="nav-text">История</div>
-            </div>
-        </div>
+        <nav class="bottom-nav">
+            <button class="nav-item active">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Заявки</span>
+            </button>
+            <button class="nav-item">
+                <span class="nav-icon">📤</span>
+                <span class="nav-text">Выгрузка</span>
+            </button>
+            <button class="nav-item">
+                <span class="nav-icon">🔒</span>
+                <span class="nav-text">Закрытие</span>
+            </button>
+            <button class="nav-item">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">История</span>
+            </button>
+        </nav>
     </div>
 
     <script>
