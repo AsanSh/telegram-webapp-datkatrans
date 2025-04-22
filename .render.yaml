@@ -12,4 +12,7 @@ services:
     name: telegram-bot
     runtime: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python bot.py" 
+    startCommand: "python bot.py"
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "true" 
