@@ -106,41 +106,74 @@
             </div>
         </div>
 
-        <!-- Active Requests List -->
-        <div class="requests-list" id="requestsList">
-            <div class="request-item">
-                <div class="request-icon">📝</div>
-                <div class="request-info">
-                    <div class="request-title">Активная заявка #1</div>
-                    <div class="request-details">Статус: В обработке</div>
+        <!-- Content Sections -->
+        <div class="content-sections">
+            <!-- Active Requests Section -->
+            <div class="section-content active" id="requests-section">
+                <h3 class="section-title">Активные заявки</h3>
+                <div class="requests-list" id="requestsList">
+                    <!-- Request items will be added here dynamically -->
                 </div>
-                <div class="request-time">12:30</div>
             </div>
-            <div class="request-item">
-                <div class="request-icon">📝</div>
-                <div class="request-info">
-                    <div class="request-title">Активная заявка #2</div>
-                    <div class="request-details">Статус: Новая</div>
+
+            <!-- Shipment Section -->
+            <div class="section-content" id="shipment-section" style="display: none;">
+                <h3 class="section-title">Заявки на выгрузку</h3>
+                <div class="requests-list" id="shipmentList">
+                    <!-- Shipment requests will be added here -->
                 </div>
-                <div class="request-time">14:45</div>
+            </div>
+
+            <!-- Closed Section -->
+            <div class="section-content" id="closed-section" style="display: none;">
+                <h3 class="section-title">Закрытые заявки</h3>
+                <div class="requests-list" id="closedList">
+                    <!-- Closed requests will be added here -->
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="section-content" id="history-section" style="display: none;">
+                <h3 class="section-title">История заявок</h3>
+                <div class="requests-list" id="historyList">
+                    <!-- History items will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Shipment Date Modal -->
+        <div id="shipmentDateModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Указать дату выгрузки</h2>
+                    <span class="close-modal" onclick="closeShipmentDateModal()">&times;</span>
+                </div>
+                <form id="shipmentDateForm" onsubmit="handleShipmentDateSubmit(event)">
+                    <div class="form-group">
+                        <label for="shipmentDate">Дата выгрузки</label>
+                        <input type="date" id="shipmentDate" name="shipmentDate" required>
+                    </div>
+                    <input type="hidden" id="requestId" name="requestId">
+                    <button type="submit" class="submit-button">Подтвердить</button>
+                </form>
             </div>
         </div>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item active">
+            <button class="nav-item active" data-section="requests-section">
                 <span class="nav-icon">📋</span>
                 <span class="nav-text">Заявки</span>
             </button>
-            <button class="nav-item">
+            <button class="nav-item" data-section="shipment-section">
                 <span class="nav-icon">📤</span>
                 <span class="nav-text">Выгрузка</span>
             </button>
-            <button class="nav-item">
+            <button class="nav-item" data-section="closed-section">
                 <span class="nav-icon">🔒</span>
                 <span class="nav-text">Закрытие</span>
             </button>
-            <button class="nav-item">
+            <button class="nav-item" data-section="history-section">
                 <span class="nav-icon">📅</span>
                 <span class="nav-text">История</span>
             </button>

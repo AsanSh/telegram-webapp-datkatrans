@@ -358,4 +358,54 @@ body {
     .action-icon {
         font-size: 1.2rem;
     }
+}
+
+/* Content Sections */
+.content-sections {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.section-content {
+    flex: 1;
+    display: none;
+}
+
+.section-content.active {
+    display: block;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    margin-bottom: var(--spacing-unit);
+}
+
+/* Request Actions */
+.request-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.move-to-shipment-btn,
+.move-to-closed-btn {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.2s;
+}
+
+.move-to-shipment-btn:hover,
+.move-to-closed-btn:hover {
+    background-color: rgba(0, 136, 204, 0.1);
 } 

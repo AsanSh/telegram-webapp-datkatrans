@@ -22,7 +22,7 @@ function closeRequestForm() {
 }
 
 // Function to create new request item
-function createRequestItem(data) {
+function createRequestItem(data, isNew = true) {
     const requestsList = document.getElementById('requestsList');
     const currentDate = new Date();
     const time = currentDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -34,6 +34,7 @@ function createRequestItem(data) {
     // Create new request element
     const requestItem = document.createElement('div');
     requestItem.className = 'request-item';
+    requestItem.dataset.requestId = `request-${Date.now()}`;
     requestItem.innerHTML = `
         <div class="request-icon">📝</div>
         <div class="request-info">
@@ -45,17 +46,122 @@ function createRequestItem(data) {
                 Груз: ${data.cargoType}
             </div>
         </div>
-        <div class="request-time">${time}</div>
+        <div class="request-actions">
+            <div class="request-time">${time}</div>
+            <button class="move-to-shipment-btn" onclick="moveToShipment('${requestItem.dataset.requestId}')">
+                📤 Выгрузка
+            </button>
+        </div>
     `;
     
     // Add new request to the top of the list
-    requestsList.insertBefore(requestItem, requestsList.firstChild);
+    if (isNew) {
+        requestsList.insertBefore(requestItem, requestsList.firstChild);
+    } else {
+        requestsList.appendChild(requestItem);
+    }
     
     // Update requests counter
+    updateRequestsCount();
+}
+
+// Function to update requests counter
+function updateRequestsCount() {
+    const activeRequests = document.getElementById('requestsList').getElementsByClassName('request-item').length;
     const counterElement = document.getElementById('requests-count');
     if (counterElement) {
-        counterElement.textContent = newRequestNumber;
+        counterElement.textContent = activeRequests;
     }
+}
+
+// Function to move request to shipment
+function moveToShipment(requestId) {
+    const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+    if (!requestItem) return;
+
+    // Show shipment date modal
+    const modal = document.getElementById('shipmentDateModal');
+    const requestIdInput = document.getElementById('requestId');
+    modal.style.display = 'block';
+    requestIdInput.value = requestId;
+}
+
+// Function to close shipment date modal
+function closeShipmentDateModal() {
+    const modal = document.getElementById('shipmentDateModal');
+    modal.style.display = 'none';
+}
+
+// Function to handle shipment date submission
+function handleShipmentDateSubmit(event) {
+    event.preventDefault();
+    
+    const requestId = document.getElementById('requestId').value;
+    const shipmentDate = document.getElementById('shipmentDate').value;
+    const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+    
+    if (requestItem) {
+        // Clone the request item
+        const shipmentItem = requestItem.cloneNode(true);
+        
+        // Update the status and add shipment date
+        const detailsDiv = shipmentItem.querySelector('.request-details');
+        detailsDiv.innerHTML = detailsDiv.innerHTML.replace(
+            'Статус: Новая',
+            `Статус: На выгрузке<br>Дата выгрузки: ${shipmentDate}`
+        );
+        
+        // Remove the move button and add close button
+        const actionsDiv = shipmentItem.querySelector('.request-actions');
+        actionsDiv.innerHTML = `
+            <div class="request-time">${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+            <button class="move-to-closed-btn" onclick="moveToClosed('${requestId}')">
+                🔒 Закрыть
+            </button>
+        `;
+        
+        // Add to shipment list
+        const shipmentList = document.getElementById('shipmentList');
+        shipmentList.insertBefore(shipmentItem, shipmentList.firstChild);
+        
+        // Remove from active requests
+        requestItem.remove();
+        
+        // Update counter
+        updateRequestsCount();
+        
+        // Close modal
+        closeShipmentDateModal();
+    }
+}
+
+// Function to move request to closed
+function moveToClosed(requestId) {
+    const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+    if (!requestItem) return;
+    
+    // Clone the request item
+    const closedItem = requestItem.cloneNode(true);
+    
+    // Update the status
+    const detailsDiv = closedItem.querySelector('.request-details');
+    detailsDiv.innerHTML = detailsDiv.innerHTML.replace(
+        'Статус: На выгрузке',
+        'Статус: Закрыто'
+    );
+    
+    // Remove the action buttons
+    const actionsDiv = closedItem.querySelector('.request-actions');
+    actionsDiv.innerHTML = `
+        <div class="request-time">${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+    `;
+    
+    // Add to closed list
+    const closedList = document.getElementById('closedList');
+    closedList.insertBefore(closedItem, closedList.firstChild);
+    
+    // Remove from shipment list
+    requestItem.remove();
 }
 
 // Handle form submission
@@ -136,17 +242,35 @@ document.addEventListener('DOMContentLoaded', function() {
     if (requestForm) {
         requestForm.onsubmit = handleRequestSubmit;
     }
+
+    // Add navigation handlers
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const sectionId = this.dataset.section;
+            showSection(sectionId);
+        });
+    });
 });
 
 // Handle navigation
-const navItems = document.querySelectorAll('.nav-item');
-navItems.forEach(item => {
-    item.addEventListener('click', function() {
-        navItems.forEach(i => i.classList.remove('active'));
-        this.classList.add('active');
-        tg.HapticFeedback.impactOccurred('light');
+function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.section-content').forEach(section => {
+        section.style.display = 'none';
     });
-});
+    
+    // Show selected section
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+    }
+    
+    // Update navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+}
 
 // Example: Update requests count
 document.getElementById('requests-count').textContent = '2';
