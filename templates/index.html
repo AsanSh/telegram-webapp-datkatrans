@@ -1,26 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>DatkaTrans Portal</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Web App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
 <body>
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-6 offset-md-3">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="text-center">Telegram Web App</h3>
-                    </div>
-                    <div class="card-body">
-                        <h1 class="text-center">Привет из Telegram Web App!</h1>
-                        <p class="text-center">Имя пользователя: <span id="username" class="fw-bold"></span></p>
-                    </div>
+    <div class="app-container">
+        <!-- Header Tabs -->
+        <div class="header-tabs">
+            <div class="welcome-text active">Добро пожаловать, <span id="username">...</span></div>
+        </div>
+
+        <!-- Main Balance Section -->
+        <div class="balance-section">
+            <div class="balance-label">Количество заявок</div>
+            <div class="balance-amount">
+                <span id="requests-count">0</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <div class="action-button">
+                <div class="action-icon">➕</div>
+                <div class="action-text">Добавить</div>
+            </div>
+            <div class="action-button">
+                <div class="action-icon">✏️</div>
+                <div class="action-text">Корректировать</div>
+            </div>
+            <div class="action-button">
+                <div class="action-icon">✖️</div>
+                <div class="action-text">Закрыть</div>
+            </div>
+            <div class="action-button">
+                <div class="action-icon">📊</div>
+                <div class="action-text">Аналитика</div>
+            </div>
+        </div>
+
+        <!-- Active Requests List -->
+        <div class="requests-list">
+            <div class="request-item">
+                <div class="request-icon">📝</div>
+                <div class="request-info">
+                    <div class="request-title">Активная заявка #1</div>
+                    <div class="request-details">Статус: В обработке</div>
                 </div>
+                <div class="request-amount">12:30</div>
+            </div>
+            <div class="request-item">
+                <div class="request-icon">📝</div>
+                <div class="request-info">
+                    <div class="request-title">Активная заявка #2</div>
+                    <div class="request-details">Статус: Новая</div>
+                </div>
+                <div class="request-amount">14:45</div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">📋</div>
+                <div class="nav-text">Заявки</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">📤</div>
+                <div class="nav-text">Выгрузка</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🔒</div>
+                <div class="nav-text">Закрытие</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">📅</div>
+                <div class="nav-text">История</div>
             </div>
         </div>
     </div>
