@@ -21,11 +21,40 @@ function closeRequestForm() {
     }
 }
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('requestFormModal');
-    if (event.target === modal) {
-        closeRequestForm();
+// Function to create new request item
+function createRequestItem(data) {
+    const requestsList = document.getElementById('requestsList');
+    const currentDate = new Date();
+    const time = currentDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    // Get the current number of requests
+    const requestsCount = requestsList.getElementsByClassName('request-item').length;
+    const newRequestNumber = requestsCount + 1;
+    
+    // Create new request element
+    const requestItem = document.createElement('div');
+    requestItem.className = 'request-item';
+    requestItem.innerHTML = `
+        <div class="request-icon">📝</div>
+        <div class="request-info">
+            <div class="request-title">Активная заявка #${newRequestNumber}</div>
+            <div class="request-details">
+                Статус: Новая<br>
+                Водитель: ${data.driverName}<br>
+                Направление: ${data.direction}<br>
+                Груз: ${data.cargoType}
+            </div>
+        </div>
+        <div class="request-time">${time}</div>
+    `;
+    
+    // Add new request to the top of the list
+    requestsList.insertBefore(requestItem, requestsList.firstChild);
+    
+    // Update requests counter
+    const counterElement = document.getElementById('requests-count');
+    if (counterElement) {
+        counterElement.textContent = newRequestNumber;
     }
 }
 
@@ -39,8 +68,14 @@ function handleRequestSubmit(event) {
     
     console.log('Form data:', data);
     
+    // Create new request item in the list
+    createRequestItem(data);
+    
     // Close the modal after submission
     closeRequestForm();
+    
+    // Reset form
+    event.target.reset();
     
     // Show success message
     alert('Заявка успешно создана!');
