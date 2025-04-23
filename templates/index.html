@@ -400,6 +400,33 @@
             return saved ? JSON.parse(saved) : [];
         }
 
+        // Функция для загрузки списка заявок
+        async function fetchRequests() {
+            try {
+                const response = await fetch('/api/requests');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                console.log('Fetched requests:', data);
+                
+                // Сохраняем данные локально
+                saveRequestsToStorage(data);
+                
+                // Обновляем отображение
+                updateRequestsList(data);
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+                
+                // В случае ошибки используем локальные данные
+                const savedRequests = loadRequestsFromStorage();
+                if (savedRequests && savedRequests.length > 0) {
+                    console.log('Using saved requests:', savedRequests);
+                    updateRequestsList(savedRequests);
+                }
+            }
+        }
+
         // Обновляем функцию handleRequestSubmit
         async function handleRequestSubmit(event) {
             event.preventDefault();
@@ -430,129 +457,41 @@
                 }
 
                 const result = await response.json();
-                
-                // Добавляем новую заявку в локальное хранилище
-                const currentRequests = loadRequestsFromStorage();
-                currentRequests.push({...formData, id: result.id});
-                saveRequestsToStorage(currentRequests);
+                console.log('Created request:', result);
 
-                // Обновляем отображение
-                updateRequestsList(currentRequests);
+                // Обновляем список заявок
+                await fetchRequests();
                 
                 // Закрываем модальное окно
                 const modal = bootstrap.Modal.getInstance(document.getElementById('requestFormModal'));
-                modal.hide();
+                if (modal) {
+                    modal.hide();
+                }
                 
                 // Очищаем форму
                 event.target.reset();
                 
                 // Показываем уведомление об успехе
                 showAlert('Заявка успешно создана!', 'success');
-                
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error creating request:', error);
                 showAlert('Ошибка при создании заявки', 'danger');
             }
         }
 
-        // Обновляем функцию fetchRequests
-        async function fetchRequests() {
-            try {
-                const response = await fetch('/api/requests');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                
-                // Сохраняем полученные данные в localStorage
-                saveRequestsToStorage(data);
-                
-                // Обновляем отображение
-                updateRequestsList(data);
-            } catch (error) {
-                console.error('Error fetching requests:', error);
-                
-                // В случае ошибки загружаем данные из localStorage
-                const savedRequests = loadRequestsFromStorage();
-                if (savedRequests.length > 0) {
-                    console.log('Loading requests from localStorage:', savedRequests);
-                    updateRequestsList(savedRequests);
-                }
-                
-                showAlert('Ошибка при загрузке заявок', 'danger');
-            }
-        }
-
-        // Обновляем функцию collectDriversData
-        function collectDriversData(requests) {
-            console.log('Collecting drivers data from requests:', requests);
-            const driversMap = new Map();
-
-            if (!Array.isArray(requests)) {
-                console.error('Requests is not an array:', requests);
-                return [];
-            }
-
-            requests.forEach(request => {
-                // Проверяем наличие необходимых полей
-                if (!request || typeof request !== 'object') {
-                    console.error('Invalid request object:', request);
-                    return;
-                }
-
-                const driverName = request.driver_name;
-                const driverPhone = request.driver_phone;
-
-                if (!driverName || !driverPhone) {
-                    console.error('Missing driver data in request:', request);
-                    return;
-                }
-
-                const driverKey = `${driverName}_${driverPhone}`;
-                
-                if (!driversMap.has(driverKey)) {
-                    driversMap.set(driverKey, {
-                        name: driverName,
-                        phone: driverPhone,
-                        requestCount: 1,
-                        lastRequest: request.created_at
-                    });
-                } else {
-                    const driver = driversMap.get(driverKey);
-                    driver.requestCount++;
-                    if (new Date(request.created_at) > new Date(driver.lastRequest)) {
-                        driver.lastRequest = request.created_at;
-                    }
-                }
-            });
-
-            const driversArray = Array.from(driversMap.values());
-            console.log('Collected drivers data:', driversArray);
-            return driversArray.sort((a, b) => b.requestCount - a.requestCount);
-        }
-
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Starting initialization...');
+            console.log('Initializing application...');
             
-            // Загружаем сохраненные заявки
-            const savedRequests = loadRequestsFromStorage();
-            if (savedRequests.length > 0) {
-                console.log('Found saved requests:', savedRequests);
-                updateRequestsList(savedRequests);
+            // Привязываем обработчик к форме
+            const form = document.getElementById('requestForm');
+            if (form) {
+                form.addEventListener('submit', handleRequestSubmit);
             }
             
             // Запускаем периодическое обновление
             fetchRequests();
             setInterval(fetchRequests, 5000);
-            
-            // Добавляем обработчик события перед перезагрузкой страницы
-            window.addEventListener('beforeunload', function() {
-                const currentRequests = loadRequestsFromStorage();
-                if (currentRequests.length > 0) {
-                    saveRequestsToStorage(currentRequests);
-                }
-            });
         });
 
         // Функция для показа уведомлений
