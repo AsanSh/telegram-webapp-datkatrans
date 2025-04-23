@@ -11,12 +11,15 @@ logging.basicConfig(
 
 # Telegram Bot Token
 TELEGRAM_BOT_TOKEN = "7886092766:AAGMZU9RLz3Nvvx67o9R_zauxk2oFbJmgeE"
-WEBAPP_URL = "https://datkatranstgapp.onrender.com"  # Updated URL
+WEBAPP_URL = "https://datkatranstgapp.onrender.com"
 
 async def start(update: Update, context: CallbackContext):
-    """Send a message with a button that opens the web app."""
+    """Send a message with a button that opens the web app and delete the start command."""
+    # Delete the /start command message
+    await update.message.delete()
+    
     keyboard = [[KeyboardButton(
-        text="Открыть портал",
+        text="ДТЛ - Платформа",
         web_app=WebAppInfo(url=WEBAPP_URL)
     )]]
     
@@ -26,14 +29,21 @@ async def start(update: Update, context: CallbackContext):
         is_persistent=True
     )
     
-    await update.message.reply_text(
-        "Привет! Нажмите кнопку 'Открыть портал' для доступа к веб-приложению:",
+    # Send welcome message
+    message = await update.message.reply_text(
+        "Добро пожаловать в DatkaTrans Portal!",
         reply_markup=reply_markup
     )
+    
+    # Delete welcome message after 3 seconds
+    await asyncio.sleep(3)
+    await message.delete()
 
-async def echo(update: Update, context: CallbackContext):
-    """Echo the user message."""
-    await update.message.reply_text(update.message.text)
+async def handle_webapp_button(update: Update, context: CallbackContext):
+    """Handle the web app button press."""
+    if update.message and update.message.web_app_data:
+        # Delete the message that triggered the web app
+        await update.message.delete()
 
 async def main():
     """Start the bot."""
@@ -43,7 +53,7 @@ async def main():
         
         # Add handlers
         application.add_handler(CommandHandler("start", start))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+        application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_button))
         
         # Start the bot
         logging.info("Starting bot...")
