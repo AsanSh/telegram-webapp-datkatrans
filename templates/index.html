@@ -579,9 +579,45 @@
             console.log('Updated drivers list with data:', driversData); // Для отладки
         }
 
+        // Функция для генерации номера заявки на основе даты
+        function generateRequestNumber(createdAt, requestsForDate) {
+            const date = new Date(createdAt);
+            const year = date.getFullYear().toString().slice(-2); // Берем последние 2 цифры года
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${day}${month}${year}/${requestsForDate}`;
+        }
+
+        // Функция для группировки заявок по дате и присвоения порядковых номеров
+        function assignRequestNumbers(requests) {
+            // Сортируем заявки по дате создания
+            const sortedRequests = [...requests].sort((a, b) => 
+                new Date(a.created_at) - new Date(b.created_at)
+            );
+
+            const requestsByDate = new Map();
+
+            // Группируем заявки по дате и присваиваем номера
+            sortedRequests.forEach(request => {
+                const date = new Date(request.created_at);
+                const dateKey = date.toISOString().split('T')[0]; // Получаем только дату
+
+                if (!requestsByDate.has(dateKey)) {
+                    requestsByDate.set(dateKey, []);
+                }
+                const requestsForDate = requestsByDate.get(dateKey);
+                requestsForDate.push(request);
+                
+                // Присваиваем номер заявке
+                request.displayNumber = generateRequestNumber(request.created_at, requestsForDate.length);
+            });
+
+            return sortedRequests;
+        }
+
         // Обновляем функцию updateRequestsList
         function updateRequestsList(requests) {
-            console.log('Updating requests list with data:', requests); // Для отладки
+            console.log('Updating requests list with data:', requests);
 
             const requestsList = document.getElementById('requestsList');
             const shipmentList = document.getElementById('shipmentList');
@@ -597,7 +633,11 @@
             shipmentList.innerHTML = '';
             closedList.innerHTML = '';
 
-            requests.forEach(request => {
+            // Присваиваем номера заявкам
+            const numberedRequests = assignRequestNumbers(requests);
+
+            // Обновляем отображение заявок
+            numberedRequests.forEach(request => {
                 const requestElement = createRequestElement(request);
                 
                 switch(request.status) {
@@ -625,16 +665,17 @@
             updateDriversList(requests);
         }
 
-        // Функция создания элемента заявки
+        // Обновляем функцию createRequestElement
         function createRequestElement(request) {
             const element = document.createElement('div');
             element.className = 'request-item';
             element.innerHTML = `
                 <div class="request-header">
-                    <span class="driver-name">${request.driver_name}</span>
-                    <span class="request-time">${formatDate(request.created_at)}</span>
+                    <h5 class="request-title">Заявка ${request.displayNumber}</h5>
+                    <span class="request-time">${formatTime(request.created_at)}</span>
                 </div>
                 <div class="request-details">
+                    <p><strong>Водитель:</strong> ${request.driver_name}</p>
                     <p><strong>Телефон:</strong> ${request.driver_phone}</p>
                     <p><strong>Номер авто:</strong> ${request.car_number}</p>
                     <p><strong>Тип груза:</strong> ${request.cargo_type}</p>
@@ -643,6 +684,15 @@
                 </div>
             `;
             return element;
+        }
+
+        // Добавляем функцию форматирования времени
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         // Функция форматирования даты
