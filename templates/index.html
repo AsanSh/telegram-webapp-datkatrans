@@ -482,6 +482,90 @@
             time_24hr: true,
             disableMobile: "true"
         });
+
+        // Функция для загрузки списка заявок
+        async function fetchRequests() {
+            try {
+                const response = await fetch('/api/requests');
+                const data = await response.json();
+                updateRequestsList(data);
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+                showAlert('Ошибка при загрузке заявок', 'danger');
+            }
+        }
+
+        // Функция обновления списка заявок на странице
+        function updateRequestsList(requests) {
+            const requestsList = document.getElementById('requestsList');
+            const shipmentList = document.getElementById('shipmentList');
+            const closedList = document.getElementById('closedList');
+            const analyticsList = document.getElementById('analyticsList');
+
+            // Очищаем существующие списки
+            requestsList.innerHTML = '';
+            shipmentList.innerHTML = '';
+            closedList.innerHTML = '';
+
+            requests.forEach(request => {
+                const requestElement = createRequestElement(request);
+                
+                // Распределяем заявки по соответствующим спискам
+                switch(request.status) {
+                    case 'pending':
+                        requestsList.appendChild(requestElement);
+                        break;
+                    case 'shipping':
+                        shipmentList.appendChild(requestElement);
+                        break;
+                    case 'closed':
+                        closedList.appendChild(requestElement);
+                        break;
+                }
+            });
+
+            // Обновляем счетчики
+            updateRequestCounters({
+                total: requests.length,
+                pending: requests.filter(r => r.status === 'pending').length,
+                closed: requests.filter(r => r.status === 'closed').length,
+                cancelled: requests.filter(r => r.status === 'cancelled').length
+            });
+        }
+
+        // Функция создания элемента заявки
+        function createRequestElement(request) {
+            const element = document.createElement('div');
+            element.className = 'request-item';
+            element.innerHTML = `
+                <div class="request-header">
+                    <span class="driver-name">${request.driver_name}</span>
+                    <span class="request-time">${formatDate(request.created_at)}</span>
+                </div>
+                <div class="request-details">
+                    <p><strong>Телефон:</strong> ${request.driver_phone}</p>
+                    <p><strong>Номер авто:</strong> ${request.car_number}</p>
+                    <p><strong>Тип груза:</strong> ${request.cargo_type}</p>
+                    <p><strong>Прибытие:</strong> ${formatDate(request.arrival_date)} ${request.arrival_time}</p>
+                    ${request.comment ? `<p><strong>Комментарий:</strong> ${request.comment}</p>` : ''}
+                </div>
+            `;
+            return element;
+        }
+
+        // Функция форматирования даты
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        // Запускаем периодическое обновление данных
+        setInterval(fetchRequests, 5000); // Обновление каждые 5 секунд
+        fetchRequests(); // Начальная загрузка данных
     </script>
 </body>
 </html> 
