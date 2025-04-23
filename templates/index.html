@@ -111,6 +111,30 @@
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             padding: 5px 0;
         }
+        .drivers-list {
+            padding: 15px;
+        }
+        .driver-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #28a745;
+        }
+        .driver-card h4 {
+            margin: 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+        .driver-card p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .driver-card .phone {
+            color: #28a745;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -241,11 +265,11 @@
                 </div>
             </div>
 
-            <!-- Analytics Section -->
-            <div class="section-content" id="analytics-section" style="display: none;">
-                <h3 class="section-title">Аналитика</h3>
-                <div class="analytics-content" id="analyticsList">
-                    <!-- Analytics content will be added here -->
+            <!-- Data Section -->
+            <div class="section-content" id="data-section" style="display: none;">
+                <h3 class="section-title">Данные водителей</h3>
+                <div class="drivers-list" id="driversList">
+                    <!-- Drivers list will be added here -->
                 </div>
             </div>
         </div>
@@ -282,9 +306,9 @@
                 <span class="nav-icon">🔒</span>
                 <span class="nav-text">Закрытие</span>
             </button>
-            <button class="nav-item" data-section="analytics-section">
-                <span class="nav-icon">📊</span>
-                <span class="nav-text">Аналитика</span>
+            <button class="nav-item" data-section="data-section">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">Данные</span>
             </button>
         </nav>
     </div>
@@ -483,24 +507,53 @@
             disableMobile: "true"
         });
 
-        // Функция для загрузки списка заявок
-        async function fetchRequests() {
-            try {
-                const response = await fetch('/api/requests');
-                const data = await response.json();
-                updateRequestsList(data);
-            } catch (error) {
-                console.error('Error fetching requests:', error);
-                showAlert('Ошибка при загрузке заявок', 'danger');
-            }
+        // Функция для сбора уникальных данных водителей
+        function collectDriversData(requests) {
+            const driversMap = new Map();
+
+            requests.forEach(request => {
+                const driverKey = `${request.driver_name}_${request.driver_phone}`;
+                
+                if (!driversMap.has(driverKey)) {
+                    driversMap.set(driverKey, {
+                        name: request.driver_name,
+                        phone: request.driver_phone,
+                        requestCount: 1,
+                        lastRequest: request.created_at
+                    });
+                } else {
+                    const driver = driversMap.get(driverKey);
+                    driver.requestCount++;
+                    if (new Date(request.created_at) > new Date(driver.lastRequest)) {
+                        driver.lastRequest = request.created_at;
+                    }
+                }
+            });
+
+            return Array.from(driversMap.values())
+                .sort((a, b) => b.requestCount - a.requestCount); // Сортировка по количеству заявок
         }
 
-        // Функция обновления списка заявок на странице
+        // Функция обновления списка водителей
+        function updateDriversList(requests) {
+            const driversData = collectDriversData(requests);
+            const driversListElement = document.getElementById('driversList');
+            
+            driversListElement.innerHTML = driversData.map(driver => `
+                <div class="driver-card">
+                    <h4>${driver.name}</h4>
+                    <p class="phone">📞 ${driver.phone}</p>
+                    <p>Количество заявок: ${driver.requestCount}</p>
+                    <p>Последняя заявка: ${formatDate(driver.lastRequest)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Обновляем функцию updateRequestsList
         function updateRequestsList(requests) {
             const requestsList = document.getElementById('requestsList');
             const shipmentList = document.getElementById('shipmentList');
             const closedList = document.getElementById('closedList');
-            const analyticsList = document.getElementById('analyticsList');
 
             // Очищаем существующие списки
             requestsList.innerHTML = '';
@@ -510,7 +563,6 @@
             requests.forEach(request => {
                 const requestElement = createRequestElement(request);
                 
-                // Распределяем заявки по соответствующим спискам
                 switch(request.status) {
                     case 'pending':
                         requestsList.appendChild(requestElement);
@@ -531,6 +583,9 @@
                 closed: requests.filter(r => r.status === 'closed').length,
                 cancelled: requests.filter(r => r.status === 'cancelled').length
             });
+
+            // Обновляем список водителей
+            updateDriversList(requests);
         }
 
         // Функция создания элемента заявки
