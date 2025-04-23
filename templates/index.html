@@ -507,11 +507,33 @@
             disableMobile: "true"
         });
 
+        // Функция для загрузки списка заявок
+        async function fetchRequests() {
+            try {
+                const response = await fetch('/api/requests');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                console.log('Fetched requests:', data); // Для отладки
+                updateRequestsList(data);
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+                showAlert('Ошибка при загрузке заявок', 'danger');
+            }
+        }
+
         // Функция для сбора уникальных данных водителей
         function collectDriversData(requests) {
+            console.log('Collecting drivers data from requests:', requests); // Для отладки
             const driversMap = new Map();
 
             requests.forEach(request => {
+                if (!request.driver_name || !request.driver_phone) {
+                    console.log('Skipping request due to missing driver data:', request); // Для отладки
+                    return;
+                }
+
                 const driverKey = `${request.driver_name}_${request.driver_phone}`;
                 
                 if (!driversMap.has(driverKey)) {
@@ -530,8 +552,9 @@
                 }
             });
 
-            return Array.from(driversMap.values())
-                .sort((a, b) => b.requestCount - a.requestCount); // Сортировка по количеству заявок
+            const driversArray = Array.from(driversMap.values());
+            console.log('Collected drivers data:', driversArray); // Для отладки
+            return driversArray.sort((a, b) => b.requestCount - a.requestCount);
         }
 
         // Функция обновления списка водителей
@@ -539,6 +562,11 @@
             const driversData = collectDriversData(requests);
             const driversListElement = document.getElementById('driversList');
             
+            if (!driversListElement) {
+                console.error('Drivers list element not found!');
+                return;
+            }
+
             driversListElement.innerHTML = driversData.map(driver => `
                 <div class="driver-card">
                     <h4>${driver.name}</h4>
@@ -547,13 +575,22 @@
                     <p>Последняя заявка: ${formatDate(driver.lastRequest)}</p>
                 </div>
             `).join('');
+
+            console.log('Updated drivers list with data:', driversData); // Для отладки
         }
 
         // Обновляем функцию updateRequestsList
         function updateRequestsList(requests) {
+            console.log('Updating requests list with data:', requests); // Для отладки
+
             const requestsList = document.getElementById('requestsList');
             const shipmentList = document.getElementById('shipmentList');
             const closedList = document.getElementById('closedList');
+
+            if (!requestsList || !shipmentList || !closedList) {
+                console.error('One or more list elements not found!');
+                return;
+            }
 
             // Очищаем существующие списки
             requestsList.innerHTML = '';
@@ -619,8 +656,11 @@
         }
 
         // Запускаем периодическое обновление данных
-        setInterval(fetchRequests, 5000); // Обновление каждые 5 секунд
-        fetchRequests(); // Начальная загрузка данных
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Starting periodic updates...'); // Для отладки
+            fetchRequests(); // Начальная загрузка данных
+            setInterval(fetchRequests, 5000); // Обновление каждые 5 секунд
+        });
     </script>
 </body>
 </html> 
