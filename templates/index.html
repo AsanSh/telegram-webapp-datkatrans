@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <title>DatkaTrans Portal</title>
     <meta charset="UTF-8">
@@ -8,28 +8,112 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        .welcome-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .add-request-btn {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .counter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 15px;
+        }
+        .counter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .counter-row:last-child {
+            border-bottom: none;
+        }
+        .counter-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .counter-label {
+            font-weight: 500;
+            color: #666;
+        }
+        .counter-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .nav-item.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .nav-item.active .nav-icon,
+        .nav-item.active .nav-text {
+            color: white;
+        }
+    </style>
 </head>
 <body>
+    <div id="alertPlaceholder" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1050;"></div>
     <div class="app-container">
         <!-- Header -->
         <div class="header">
-            <h1 class="welcome-text">Добро пожаловать, <span id="username">...</span></h1>
+            <div class="welcome-container">
+                <h1 class="welcome-text">Добро пожаловать, <span id="username">...</span></h1>
+                <button class="add-request-btn" onclick="showRequestForm()">
+                    <span>➕ Добавить</span>
+                </button>
+            </div>
         </div>
 
         <!-- Request Counter -->
         <div class="counter-section">
-            <div class="counter-label">Количество заявок</div>
-            <div class="counter-amount" id="requests-count">2</div>
+            <div class="counter-row">
+                <div class="counter-item">
+                    <div class="counter-label">Всего заявок</div>
+                    <div class="counter-value" id="total-requests">0</div>
+                </div>
+                <div class="counter-item">
+                    <div class="counter-label">Ожидают разгрузки</div>
+                    <div class="counter-value" id="pending-unload">0</div>
+                </div>
+            </div>
+            <div class="counter-row">
+                <div class="counter-item">
+                    <div class="counter-label">Закрытые заявки</div>
+                    <div class="counter-value" id="closed-requests">0</div>
+                </div>
+                <div class="counter-item">
+                    <div class="counter-label">Отмененные заявки</div>
+                    <div class="counter-value" id="cancelled-requests">0</div>
+                </div>
+            </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <button class="action-button add-button" onclick="showRequestForm()">
-                <span class="action-icon">➕</span>
-                <span class="action-text">Добавить</span>
-            </button>
             <button class="action-button edit-button">
                 <span class="action-icon">✏️</span>
                 <span class="action-text">Корректировать</span>
@@ -183,8 +267,10 @@
         </nav>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', path='/js/main.js') }}?v={{ range(1, 10000) | random }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 
     <script>
         // Проверка, что функции определены
@@ -213,6 +299,166 @@
             } else {
                 console.log('Modal element not found');
             }
+        });
+
+        // Handle active menu state
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all items
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                });
+            });
+
+            // Set initial active state
+            if (navItems.length > 0) {
+                navItems[0].classList.add('active');
+            }
+        });
+
+        // Update request counters
+        function updateRequestCounters(data) {
+            document.getElementById('total-requests').textContent = data.total || 0;
+            document.getElementById('pending-unload').textContent = data.pending || 0;
+            document.getElementById('closed-requests').textContent = data.closed || 0;
+            document.getElementById('cancelled-requests').textContent = data.cancelled || 0;
+        }
+
+        // Example function to fetch and update counters
+        async function fetchRequestCounters() {
+            try {
+                const response = await fetch('/api/request-counts');
+                const data = await response.json();
+                updateRequestCounters(data);
+            } catch (error) {
+                console.error('Error fetching request counts:', error);
+            }
+        }
+
+        // Update counters periodically
+        setInterval(fetchRequestCounters, 30000); // Update every 30 seconds
+        fetchRequestCounters(); // Initial update
+
+        // Form handling
+        document.getElementById('requestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                driver_name: document.getElementById('driverName').value,
+                driver_phone: document.getElementById('driverPhone').value,
+                car_number: document.getElementById('carNumber').value,
+                cargo_type: document.getElementById('cargoType').value,
+                freight_type: document.getElementById('freightType').value,
+                arrival_date: document.getElementById('arrivalDate').value,
+                arrival_time: document.getElementById('arrivalTime').value,
+                comment: document.getElementById('comment').value
+            };
+
+            try {
+                const response = await fetch('/api/requests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    // Hide modal and show success message
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('requestModal'));
+                    modal.hide();
+                    
+                    // Clear form
+                    document.getElementById('requestForm').reset();
+                    
+                    // Show success alert
+                    const alertPlaceholder = document.getElementById('alertPlaceholder');
+                    const alertHTML = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            Заявка успешно создана!
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    alertPlaceholder.innerHTML = alertHTML;
+                    
+                    // Update counters
+                    await fetchRequestCounters();
+                } else {
+                    throw new Error('Failed to create request');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Show error alert
+                const alertPlaceholder = document.getElementById('alertPlaceholder');
+                const alertHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Ошибка при создании заявки. Пожалуйста, попробуйте снова.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                alertPlaceholder.innerHTML = alertHTML;
+            }
+        });
+
+        // Form validation
+        const form = document.getElementById('requestForm');
+        const inputs = form.querySelectorAll('input[required], select[required]');
+        
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
+
+        // Функция для показа уведомлений
+        function showAlert(message, type) {
+            const alertPlaceholder = document.getElementById('alertPlaceholder');
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = [
+                `<div class="alert alert-${type} alert-dismissible fade show" role="alert">`,
+                `   <div>${message}</div>`,
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('');
+            
+            alertPlaceholder.append(wrapper);
+            
+            // Автоматически скрыть уведомление через 5 секунд
+            setTimeout(() => {
+                const alert = wrapper.querySelector('.alert');
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        }
+
+        // Инициализация выбора даты
+        flatpickr("#arrivalDate", {
+            locale: "ru",
+            dateFormat: "d.m.Y",
+            minDate: "today",
+            disableMobile: "true"
+        });
+
+        // Инициализация выбора времени
+        flatpickr("#arrivalTime", {
+            locale: "ru",
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            disableMobile: "true"
         });
     </script>
 </body>
