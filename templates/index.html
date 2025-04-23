@@ -431,29 +431,34 @@
         async function handleRequestSubmit(event) {
             event.preventDefault();
             
+            // Собираем данные формы
             const formData = {
-                driver_name: document.getElementById('driverName').value,
-                driver_phone: document.getElementById('phoneNumber').value,
-                car_number: document.getElementById('vehicleNumber').value,
-                cargo_type: document.getElementById('cargoType').value,
+                driver_name: document.getElementById('driverName').value.trim(),
+                driver_phone: document.getElementById('phoneNumber').value.trim(),
+                car_number: document.getElementById('vehicleNumber').value.trim(),
+                cargo_type: document.getElementById('cargoType').value.trim(),
                 arrival_date: document.getElementById('arrivalDate').value,
                 arrival_time: document.getElementById('arrivalTime').value,
-                comment: document.getElementById('comment')?.value || '',
+                comment: document.getElementById('comment')?.value?.trim() || '',
                 created_at: new Date().toISOString(),
                 status: 'pending'
             };
+
+            console.log('Sending request data:', formData);
 
             try {
                 const response = await fetch('/api/requests', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(formData)
                 });
 
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Network response was not ok');
                 }
 
                 const result = await response.json();
@@ -475,7 +480,7 @@
                 showAlert('Заявка успешно создана!', 'success');
             } catch (error) {
                 console.error('Error creating request:', error);
-                showAlert('Ошибка при создании заявки', 'danger');
+                showAlert(`Ошибка при создании заявки: ${error.message}`, 'danger');
             }
         }
 

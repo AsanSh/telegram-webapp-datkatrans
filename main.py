@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,7 +13,7 @@ from datetime import datetime
 load_dotenv()
 
 # Модель данных для заявки
-class Request(BaseModel):
+class RequestModel(BaseModel):
     driver_name: str
     driver_phone: str
     car_number: str
@@ -63,25 +63,35 @@ async def get_requests():
     return JSONResponse(content=requests)
 
 @app.post("/api/requests")
-async def create_request(request: Request):
-    requests = load_requests()
-    
-    # Добавляем timestamp если его нет
-    if not request.created_at:
-        request.created_at = datetime.now().isoformat()
-    
-    # Генерируем ID если его нет
-    if not request.id:
-        request.id = f"request-{int(datetime.now().timestamp() * 1000)}"
-    
-    # Добавляем новую заявку
-    request_dict = request.dict()
-    requests.append(request_dict)
-    
-    # Сохраняем обновленный список
-    save_requests(requests)
-    
-    return JSONResponse(content=request_dict)
+async def create_request(request_data: dict = Body(...)):
+    try:
+        # Создаем объект модели из полученных данных
+        request = RequestModel(**request_data)
+        
+        # Загружаем существующие заявки
+        requests = load_requests()
+        
+        # Добавляем timestamp если его нет
+        if not request.created_at:
+            request.created_at = datetime.now().isoformat()
+        
+        # Генерируем ID если его нет
+        if not request.id:
+            request.id = f"request-{int(datetime.now().timestamp() * 1000)}"
+        
+        # Преобразуем модель в словарь
+        request_dict = request.model_dump()
+        
+        # Добавляем новую заявку
+        requests.append(request_dict)
+        
+        # Сохраняем обновленный список
+        save_requests(requests)
+        
+        return JSONResponse(content=request_dict)
+    except Exception as e:
+        print(f"Error creating request: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/request-counts")
 async def get_request_counts():
