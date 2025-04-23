@@ -389,19 +389,31 @@
         setInterval(fetchRequestCounters, 30000); // Update every 30 seconds
         fetchRequestCounters(); // Initial update
 
-        // Form handling
-        document.getElementById('requestForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Функция для сохранения заявок в localStorage
+        function saveRequestsToStorage(requests) {
+            localStorage.setItem('requests', JSON.stringify(requests));
+        }
+
+        // Функция для загрузки заявок из localStorage
+        function loadRequestsFromStorage() {
+            const saved = localStorage.getItem('requests');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        // Обновляем функцию handleRequestSubmit
+        async function handleRequestSubmit(event) {
+            event.preventDefault();
             
             const formData = {
                 driver_name: document.getElementById('driverName').value,
-                driver_phone: document.getElementById('driverPhone').value,
-                car_number: document.getElementById('carNumber').value,
+                driver_phone: document.getElementById('phoneNumber').value,
+                car_number: document.getElementById('vehicleNumber').value,
                 cargo_type: document.getElementById('cargoType').value,
-                freight_type: document.getElementById('freightType').value,
                 arrival_date: document.getElementById('arrivalDate').value,
                 arrival_time: document.getElementById('arrivalTime').value,
-                comment: document.getElementById('comment').value
+                comment: document.getElementById('comment')?.value || '',
+                created_at: new Date().toISOString(),
+                status: 'pending'
             };
 
             try {
@@ -413,55 +425,132 @@
                     body: JSON.stringify(formData)
                 });
 
-                if (response.ok) {
-                    // Hide modal and show success message
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('requestModal'));
-                    modal.hide();
-                    
-                    // Clear form
-                    document.getElementById('requestForm').reset();
-                    
-                    // Show success alert
-                    const alertPlaceholder = document.getElementById('alertPlaceholder');
-                    const alertHTML = `
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            Заявка успешно создана!
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    `;
-                    alertPlaceholder.innerHTML = alertHTML;
-                    
-                    // Update counters
-                    await fetchRequestCounters();
-                } else {
-                    throw new Error('Failed to create request');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
+
+                const result = await response.json();
+                
+                // Добавляем новую заявку в локальное хранилище
+                const currentRequests = loadRequestsFromStorage();
+                currentRequests.push({...formData, id: result.id});
+                saveRequestsToStorage(currentRequests);
+
+                // Обновляем отображение
+                updateRequestsList(currentRequests);
+                
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('requestFormModal'));
+                modal.hide();
+                
+                // Очищаем форму
+                event.target.reset();
+                
+                // Показываем уведомление об успехе
+                showAlert('Заявка успешно создана!', 'success');
+                
             } catch (error) {
                 console.error('Error:', error);
-                // Show error alert
-                const alertPlaceholder = document.getElementById('alertPlaceholder');
-                const alertHTML = `
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        Ошибка при создании заявки. Пожалуйста, попробуйте снова.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `;
-                alertPlaceholder.innerHTML = alertHTML;
+                showAlert('Ошибка при создании заявки', 'danger');
             }
-        });
+        }
 
-        // Form validation
-        const form = document.getElementById('requestForm');
-        const inputs = form.querySelectorAll('input[required], select[required]');
-        
-        inputs.forEach(input => {
-            input.addEventListener('input', function() {
-                if (this.value.trim()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
+        // Обновляем функцию fetchRequests
+        async function fetchRequests() {
+            try {
+                const response = await fetch('/api/requests');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                
+                // Сохраняем полученные данные в localStorage
+                saveRequestsToStorage(data);
+                
+                // Обновляем отображение
+                updateRequestsList(data);
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+                
+                // В случае ошибки загружаем данные из localStorage
+                const savedRequests = loadRequestsFromStorage();
+                if (savedRequests.length > 0) {
+                    console.log('Loading requests from localStorage:', savedRequests);
+                    updateRequestsList(savedRequests);
+                }
+                
+                showAlert('Ошибка при загрузке заявок', 'danger');
+            }
+        }
+
+        // Обновляем функцию collectDriversData
+        function collectDriversData(requests) {
+            console.log('Collecting drivers data from requests:', requests);
+            const driversMap = new Map();
+
+            if (!Array.isArray(requests)) {
+                console.error('Requests is not an array:', requests);
+                return [];
+            }
+
+            requests.forEach(request => {
+                // Проверяем наличие необходимых полей
+                if (!request || typeof request !== 'object') {
+                    console.error('Invalid request object:', request);
+                    return;
+                }
+
+                const driverName = request.driver_name;
+                const driverPhone = request.driver_phone;
+
+                if (!driverName || !driverPhone) {
+                    console.error('Missing driver data in request:', request);
+                    return;
+                }
+
+                const driverKey = `${driverName}_${driverPhone}`;
+                
+                if (!driversMap.has(driverKey)) {
+                    driversMap.set(driverKey, {
+                        name: driverName,
+                        phone: driverPhone,
+                        requestCount: 1,
+                        lastRequest: request.created_at
+                    });
                 } else {
-                    this.classList.remove('is-valid');
-                    this.classList.add('is-invalid');
+                    const driver = driversMap.get(driverKey);
+                    driver.requestCount++;
+                    if (new Date(request.created_at) > new Date(driver.lastRequest)) {
+                        driver.lastRequest = request.created_at;
+                    }
+                }
+            });
+
+            const driversArray = Array.from(driversMap.values());
+            console.log('Collected drivers data:', driversArray);
+            return driversArray.sort((a, b) => b.requestCount - a.requestCount);
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Starting initialization...');
+            
+            // Загружаем сохраненные заявки
+            const savedRequests = loadRequestsFromStorage();
+            if (savedRequests.length > 0) {
+                console.log('Found saved requests:', savedRequests);
+                updateRequestsList(savedRequests);
+            }
+            
+            // Запускаем периодическое обновление
+            fetchRequests();
+            setInterval(fetchRequests, 5000);
+            
+            // Добавляем обработчик события перед перезагрузкой страницы
+            window.addEventListener('beforeunload', function() {
+                const currentRequests = loadRequestsFromStorage();
+                if (currentRequests.length > 0) {
+                    saveRequestsToStorage(currentRequests);
                 }
             });
         });
@@ -506,22 +595,6 @@
             time_24hr: true,
             disableMobile: "true"
         });
-
-        // Функция для загрузки списка заявок
-        async function fetchRequests() {
-            try {
-                const response = await fetch('/api/requests');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                console.log('Fetched requests:', data); // Для отладки
-                updateRequestsList(data);
-            } catch (error) {
-                console.error('Error fetching requests:', error);
-                showAlert('Ошибка при загрузке заявок', 'danger');
-            }
-        }
 
         // Функция для сбора уникальных данных водителей
         function collectDriversData(requests) {
@@ -704,13 +777,6 @@
                 year: 'numeric'
             });
         }
-
-        // Запускаем периодическое обновление данных
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Starting periodic updates...'); // Для отладки
-            fetchRequests(); // Начальная загрузка данных
-            setInterval(fetchRequests, 5000); // Обновление каждые 5 секунд
-        });
     </script>
 </body>
 </html> 
