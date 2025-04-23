@@ -366,6 +366,184 @@
             }
         });
 
+        // Функции для работы с localStorage
+        const STORAGE_KEY = 'datkatrans_requests';
+        
+        function saveToStorage(requests) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+                console.log('Saved to storage:', requests);
+            } catch (error) {
+                console.error('Error saving to storage:', error);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                const requests = saved ? JSON.parse(saved) : [];
+                console.log('Loaded from storage:', requests);
+                return requests;
+            } catch (error) {
+                console.error('Error loading from storage:', error);
+                return [];
+            }
+        }
+
+        // Глобальное состояние приложения
+        let requests = loadFromStorage();
+
+        // Функция обновления интерфейса
+        function updateUI() {
+            updateRequestsList(requests);
+            updateDriversList(requests);
+            updateRequestCounters({
+                total: requests.length,
+                pending: requests.filter(r => r.status === 'pending').length,
+                closed: requests.filter(r => r.status === 'closed').length,
+                cancelled: requests.filter(r => r.status === 'cancelled').length
+            });
+        }
+
+        // Обработчик отправки формы
+        async function handleRequestSubmit(event) {
+            event.preventDefault();
+            
+            const newRequest = {
+                id: `request-${Date.now()}`,
+                driver_name: document.getElementById('driverName').value.trim(),
+                driver_phone: document.getElementById('phoneNumber').value.trim(),
+                car_number: document.getElementById('vehicleNumber').value.trim(),
+                cargo_type: document.getElementById('cargoType').value.trim(),
+                arrival_date: document.getElementById('arrivalDate').value,
+                arrival_time: document.getElementById('arrivalTime').value,
+                comment: document.getElementById('comment')?.value?.trim() || '',
+                created_at: new Date().toISOString(),
+                status: 'pending'
+            };
+
+            console.log('Creating new request:', newRequest);
+
+            try {
+                // Добавляем новую заявку в массив
+                requests.push(newRequest);
+                
+                // Сохраняем в localStorage
+                saveToStorage(requests);
+                
+                // Обновляем интерфейс
+                updateUI();
+                
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('requestFormModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Очищаем форму
+                event.target.reset();
+                
+                // Показываем уведомление об успехе
+                showAlert('Заявка успешно создана!', 'success');
+            } catch (error) {
+                console.error('Error creating request:', error);
+                showAlert('Ошибка при создании заявки', 'danger');
+            }
+        }
+
+        // Функция для сбора данных водителей
+        function collectDriversData(requests) {
+            const driversMap = new Map();
+
+            requests.forEach(request => {
+                const driverKey = `${request.driver_name}_${request.driver_phone}`;
+                
+                if (!driversMap.has(driverKey)) {
+                    driversMap.set(driverKey, {
+                        name: request.driver_name,
+                        phone: request.driver_phone,
+                        requestCount: 1,
+                        lastRequest: request.created_at
+                    });
+                } else {
+                    const driver = driversMap.get(driverKey);
+                    driver.requestCount++;
+                    if (new Date(request.created_at) > new Date(driver.lastRequest)) {
+                        driver.lastRequest = request.created_at;
+                    }
+                }
+            });
+
+            return Array.from(driversMap.values())
+                .sort((a, b) => b.requestCount - a.requestCount);
+        }
+
+        // Функция обновления списка водителей
+        function updateDriversList(requests) {
+            const driversData = collectDriversData(requests);
+            const driversListElement = document.getElementById('driversList');
+            
+            if (!driversListElement) return;
+            
+            driversListElement.innerHTML = driversData.map(driver => `
+                <div class="driver-card">
+                    <h4>${driver.name}</h4>
+                    <p class="phone">📞 ${driver.phone}</p>
+                    <p>Количество заявок: ${driver.requestCount}</p>
+                    <p>Последняя заявка: ${formatDate(driver.lastRequest)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Функция обновления списка заявок
+        function updateRequestsList(requests) {
+            const requestsList = document.getElementById('requestsList');
+            const shipmentList = document.getElementById('shipmentList');
+            const closedList = document.getElementById('closedList');
+
+            if (!requestsList || !shipmentList || !closedList) return;
+
+            // Очищаем существующие списки
+            requestsList.innerHTML = '';
+            shipmentList.innerHTML = '';
+            closedList.innerHTML = '';
+
+            // Сортируем заявки по дате создания (новые сверху)
+            const sortedRequests = [...requests].sort((a, b) => 
+                new Date(b.created_at) - new Date(a.created_at)
+            );
+
+            sortedRequests.forEach(request => {
+                const requestElement = createRequestElement(request);
+                
+                switch(request.status) {
+                    case 'pending':
+                        requestsList.appendChild(requestElement);
+                        break;
+                    case 'shipping':
+                        shipmentList.appendChild(requestElement);
+                        break;
+                    case 'closed':
+                        closedList.appendChild(requestElement);
+                        break;
+                }
+            });
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing application...');
+            
+            // Привязываем обработчик к форме
+            const form = document.getElementById('requestForm');
+            if (form) {
+                form.addEventListener('submit', handleRequestSubmit);
+            }
+            
+            // Обновляем интерфейс начальными данными
+            updateUI();
+        });
+
         // Update request counters
         function updateRequestCounters(data) {
             document.getElementById('total-requests').textContent = data.total || 0;
@@ -388,116 +566,6 @@
         // Update counters periodically
         setInterval(fetchRequestCounters, 30000); // Update every 30 seconds
         fetchRequestCounters(); // Initial update
-
-        // Функция для сохранения заявок в localStorage
-        function saveRequestsToStorage(requests) {
-            localStorage.setItem('requests', JSON.stringify(requests));
-        }
-
-        // Функция для загрузки заявок из localStorage
-        function loadRequestsFromStorage() {
-            const saved = localStorage.getItem('requests');
-            return saved ? JSON.parse(saved) : [];
-        }
-
-        // Функция для загрузки списка заявок
-        async function fetchRequests() {
-            try {
-                const response = await fetch('/api/requests');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                console.log('Fetched requests:', data);
-                
-                // Сохраняем данные локально
-                saveRequestsToStorage(data);
-                
-                // Обновляем отображение
-                updateRequestsList(data);
-            } catch (error) {
-                console.error('Error fetching requests:', error);
-                
-                // В случае ошибки используем локальные данные
-                const savedRequests = loadRequestsFromStorage();
-                if (savedRequests && savedRequests.length > 0) {
-                    console.log('Using saved requests:', savedRequests);
-                    updateRequestsList(savedRequests);
-                }
-            }
-        }
-
-        // Обновляем функцию handleRequestSubmit
-        async function handleRequestSubmit(event) {
-            event.preventDefault();
-            
-            // Собираем данные формы
-            const formData = {
-                driver_name: document.getElementById('driverName').value.trim(),
-                driver_phone: document.getElementById('phoneNumber').value.trim(),
-                car_number: document.getElementById('vehicleNumber').value.trim(),
-                cargo_type: document.getElementById('cargoType').value.trim(),
-                arrival_date: document.getElementById('arrivalDate').value,
-                arrival_time: document.getElementById('arrivalTime').value,
-                comment: document.getElementById('comment')?.value?.trim() || '',
-                created_at: new Date().toISOString(),
-                status: 'pending'
-            };
-
-            console.log('Sending request data:', formData);
-
-            try {
-                const response = await fetch('/api/requests', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Network response was not ok');
-                }
-
-                const result = await response.json();
-                console.log('Created request:', result);
-
-                // Обновляем список заявок
-                await fetchRequests();
-                
-                // Закрываем модальное окно
-                const modal = bootstrap.Modal.getInstance(document.getElementById('requestFormModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                
-                // Очищаем форму
-                event.target.reset();
-                
-                // Показываем уведомление об успехе
-                showAlert('Заявка успешно создана!', 'success');
-            } catch (error) {
-                console.error('Error creating request:', error);
-                showAlert(`Ошибка при создании заявки: ${error.message}`, 'danger');
-            }
-        }
-
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing application...');
-            
-            // Привязываем обработчик к форме
-            const form = document.getElementById('requestForm');
-            if (form) {
-                form.addEventListener('submit', handleRequestSubmit);
-            }
-            
-            // Запускаем периодическое обновление
-            fetchRequests();
-            setInterval(fetchRequests, 5000);
-        });
 
         // Функция для показа уведомлений
         function showAlert(message, type) {
@@ -540,62 +608,6 @@
             disableMobile: "true"
         });
 
-        // Функция для сбора уникальных данных водителей
-        function collectDriversData(requests) {
-            console.log('Collecting drivers data from requests:', requests); // Для отладки
-            const driversMap = new Map();
-
-            requests.forEach(request => {
-                if (!request.driver_name || !request.driver_phone) {
-                    console.log('Skipping request due to missing driver data:', request); // Для отладки
-                    return;
-                }
-
-                const driverKey = `${request.driver_name}_${request.driver_phone}`;
-                
-                if (!driversMap.has(driverKey)) {
-                    driversMap.set(driverKey, {
-                        name: request.driver_name,
-                        phone: request.driver_phone,
-                        requestCount: 1,
-                        lastRequest: request.created_at
-                    });
-                } else {
-                    const driver = driversMap.get(driverKey);
-                    driver.requestCount++;
-                    if (new Date(request.created_at) > new Date(driver.lastRequest)) {
-                        driver.lastRequest = request.created_at;
-                    }
-                }
-            });
-
-            const driversArray = Array.from(driversMap.values());
-            console.log('Collected drivers data:', driversArray); // Для отладки
-            return driversArray.sort((a, b) => b.requestCount - a.requestCount);
-        }
-
-        // Функция обновления списка водителей
-        function updateDriversList(requests) {
-            const driversData = collectDriversData(requests);
-            const driversListElement = document.getElementById('driversList');
-            
-            if (!driversListElement) {
-                console.error('Drivers list element not found!');
-                return;
-            }
-
-            driversListElement.innerHTML = driversData.map(driver => `
-                <div class="driver-card">
-                    <h4>${driver.name}</h4>
-                    <p class="phone">📞 ${driver.phone}</p>
-                    <p>Количество заявок: ${driver.requestCount}</p>
-                    <p>Последняя заявка: ${formatDate(driver.lastRequest)}</p>
-                </div>
-            `).join('');
-
-            console.log('Updated drivers list with data:', driversData); // Для отладки
-        }
-
         // Функция для генерации номера заявки на основе даты
         function generateRequestNumber(createdAt, requestsForDate) {
             const date = new Date(createdAt);
@@ -630,56 +642,6 @@
             });
 
             return sortedRequests;
-        }
-
-        // Обновляем функцию updateRequestsList
-        function updateRequestsList(requests) {
-            console.log('Updating requests list with data:', requests);
-
-            const requestsList = document.getElementById('requestsList');
-            const shipmentList = document.getElementById('shipmentList');
-            const closedList = document.getElementById('closedList');
-
-            if (!requestsList || !shipmentList || !closedList) {
-                console.error('One or more list elements not found!');
-                return;
-            }
-
-            // Очищаем существующие списки
-            requestsList.innerHTML = '';
-            shipmentList.innerHTML = '';
-            closedList.innerHTML = '';
-
-            // Присваиваем номера заявкам
-            const numberedRequests = assignRequestNumbers(requests);
-
-            // Обновляем отображение заявок
-            numberedRequests.forEach(request => {
-                const requestElement = createRequestElement(request);
-                
-                switch(request.status) {
-                    case 'pending':
-                        requestsList.appendChild(requestElement);
-                        break;
-                    case 'shipping':
-                        shipmentList.appendChild(requestElement);
-                        break;
-                    case 'closed':
-                        closedList.appendChild(requestElement);
-                        break;
-                }
-            });
-
-            // Обновляем счетчики
-            updateRequestCounters({
-                total: requests.length,
-                pending: requests.filter(r => r.status === 'pending').length,
-                closed: requests.filter(r => r.status === 'closed').length,
-                cancelled: requests.filter(r => r.status === 'cancelled').length
-            });
-
-            // Обновляем список водителей
-            updateDriversList(requests);
         }
 
         // Обновляем функцию createRequestElement
